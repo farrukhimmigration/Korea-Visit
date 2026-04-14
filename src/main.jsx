@@ -8,15 +8,15 @@ const processImageAI = async (base64Image) => {
         headers: {
           "Authorization": `Bearer ${config.openRouterKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://korea-visit.vercel.app", // Required by OpenRouter
-          "X-Title": "Korea Visit AI"
+          "HTTP-Referer": "https://korea-visit.vercel.app", 
+          "X-Title": "Korea Visit AI Tool"
         },
         body: JSON.stringify({
-          model: "google/gemini-2.0-flash-exp:free", // Use the 100% Free Model
+          model: "google/gemini-2.0-flash-exp:free", 
           messages: [{
             role: "user",
             content: [
-              { type: "text", text: "You are an immigration assistant. Extract the full name and passport number from this ID document. Return ONLY a JSON object: {\"name\": \"NAME HERE\", \"passport\": \"NUMBER HERE\"}" },
+              { type: "text", text: "Extract Name and Passport Number. Return ONLY JSON: {\"name\": \"...\", \"passport\": \"...\"}" },
               { type: "image_url", image_url: { url: base64Image } }
             ]
           }]
@@ -25,8 +25,11 @@ const processImageAI = async (base64Image) => {
 
       const data = await response.json();
       
+      // If OpenRouter returns an error, show the specific message
       if (data.error) {
-        throw new Error(data.error.message);
+        alert("OpenRouter Error: " + data.error.message);
+        setScanning(false);
+        return;
       }
 
       const resultText = data.choices[0].message.content.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -35,8 +38,7 @@ const processImageAI = async (base64Image) => {
       if(extracted.name) setName(extracted.name.toUpperCase());
       if(extracted.passport) setPassport(extracted.passport.toUpperCase());
     } catch (err) {
-      console.error(err);
-      alert("AI Error: " + err.message + ". Ensure your OpenRouter key has at least $0.01 credit or use a free model.");
+      alert("System Error: " + err.message);
     }
     setScanning(false);
   };
