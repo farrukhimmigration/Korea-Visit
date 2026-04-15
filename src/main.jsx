@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
-// --- CORE ENGINE: KOREA PRIME SUPREME v16 ---
+// --- KOREA PRIME SUPREME v16.1 ---
 export default function FarrukhEliteEngine() {
   const [auth, setAuth] = useState(false);
   const [view, setView] = useState("dash");
@@ -8,50 +8,48 @@ export default function FarrukhEliteEngine() {
   const [syncing, setSyncing] = useState(false);
   
   const [config, setConfig] = useState(() => {
-    const s = localStorage.getItem("kp_vault_config");
+    const s = localStorage.getItem("kp_v16_cfg");
     return s ? JSON.parse(s) : { key: "", gas: "" };
   });
 
   const [clients, setClients] = useState(() => {
-    const s = localStorage.getItem("kp_vault_clients");
+    const s = localStorage.getItem("kp_v16_cli");
     return s ? JSON.parse(s) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem("kp_vault_config", JSON.stringify(config));
-    localStorage.setItem("kp_vault_clients", JSON.stringify(clients));
+    localStorage.setItem("kp_v16_cfg", JSON.stringify(config));
+    localStorage.setItem("kp_v16_cli", JSON.stringify(clients));
   }, [config, clients]);
 
   const syncToCloud = async (currentList) => {
     if (!config.gas) return;
-    setSyncing(true);
     try {
       await fetch(config.gas, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "sync", clients: currentList }) });
     } catch (e) { console.error(e); }
-    setSyncing(false);
   };
 
   const retrieveFromCloud = async () => {
-    if (!config.gas) return alert("Error: Missing Google Script URL in Config.");
+    if (!config.gas) return alert("Missing Google Script URL.");
     setSyncing(true);
     try {
       const res = await fetch(config.gas, { method: "POST", body: JSON.stringify({ action: "retrieve" }) });
       const data = await res.json();
       setClients(data);
-      alert("VAULT LOADED FROM DRIVE.");
-    } catch (e) { alert("Cloud Sync Failed. Check Deployment."); }
+      alert("VAULT SYNCED.");
+    } catch (e) { alert("Sync Failed."); }
     setSyncing(false);
   };
 
-  if (!auth) return <SecureGate onAccess={setAuth} />;
+  if (!auth) return <SecureGate setAuth={setAuth} />;
 
   return (
     <div style={S.screen}>
       <header style={S.header}>
-        <h1 style={S.brand}>KOREA PRIME <span style={{fontSize:10, color:"#444"}}>v16.PRO</span></h1>
+        <h1 style={S.brand}>KOREA PRIME <span style={{fontSize:10, color:"#444"}}>v16.1</span></h1>
         <div style={{textAlign:"right"}}>
-          <p style={S.firmName}>FARRUKH CONSULTANT | +92 309 6136 080</p>
-          <button onClick={() => setView("config")} style={S.btnSmall}>⚙️ SYSTEM CONFIG</button>
+          <p style={S.firmName}>FARRUKH CONSULTANT</p>
+          <button onClick={() => setView("config")} style={S.btnSmall}>⚙️ CONFIG</button>
         </div>
       </header>
 
@@ -96,94 +94,26 @@ export default function FarrukhEliteEngine() {
   );
 }
 
-// --- CASE MASTER: THE LAWYER BRAIN ---
-function CaseMaster({ client, clients, setClients, config, onBack }) {
-  const [loading, setLoading] = useState(false);
-  const checklist = ["Passport Copy", "CNIC", "FRC (Family)", "Bank Statement (6m)", "NTN/Tax Returns", "Chamber Certificate", "Polio Card"];
-
-  const runLegalAudit = async (fileBase64) => {
-    if(!config.key) return alert("FATAL: No API Key in Config.");
-    setLoading(true);
-    try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${config.key}`, // FIXED: Using backticks for dynamic key
-          "Content-Type": "application/json" 
-        },
-        body: JSON.stringify({
-          model: "google/gemini-flash-1.5-exp",
-          messages: [{
-            role: "user",
-            content: [
-              { type: "text", text: `ACT AS FARRUKH NADEEM (Immigration Lawyer).
-                APPLY FARRUKH CONSULTANT STRATEGY:
-                1. 12 ADVANTAGES: Focus on LA-10 (Ban Prevention) and LA-12 (Proportionality).
-                2. REFUSAL ANALYSIS: If it's a refusal, diagnose Path 1 (Reconsideration), Path 2 (Fresh App), or Path 3 (Admin Appeal).
-                3. LEGAL CITATION: For Path 1, draft a rebuttal based on Article 7 of the ICA regarding 'Abuse of Discretionary Power'.
-                4. OUTPUT: Provide a Strength Score, a Forensic Report, and a Roman Urdu WhatsApp summary.` },
-              { type: "image_url", image_url: { url: fileBase64 } }
-            ]
-          }]
-        })
-      });
-      const data = await res.json();
-      const report = data.choices[0].message.content;
-      const updated = clients.map(c => c.id === client.id ? {...c, audit: report, status: "Audited"} : c);
-      setClients(updated);
-    } catch (e) { alert("AUDIT FAILED: Ensure your OpenRouter key is valid."); }
-    setLoading(false);
-  };
-
-  return (
-    <div style={S.container}>
-      <div style={S.flexBetween}>
-        <h2>CLIENT: {client.name.toUpperCase()}</h2>
-        <button onClick={onBack} style={S.btnSmall}>← BACK TO VAULT</button>
-      </div>
-      <div style={S.grid2}>
-        <div style={S.panel}>
-          <h3>Forensic Audit</h3>
-          <input type="file" onChange={(e) => {
-            const r = new FileReader();
-            r.onload = () => runLegalAudit(r.result);
-            r.readAsDataURL(e.target.files[0]);
-          }} style={S.fileInput} />
-          {loading && <p style={{color: "#00ff88"}}>ENGINE ANALYZING...</p>}
-          <div style={S.auditDisplay}>{client.audit || "Upload document to begin analysis."}</div>
-        </div>
-        <div style={S.panel}>
-          <h3>Case Progress</h3>
-          {checklist.map(item => <div key={item} style={{margin: "10px 0"}}><input type="checkbox" /> {item}</div>)}
-          <button style={S.btnAction}>📝 DRAFT APPEAL (PATH 1)</button>
-          <button style={S.btnAction} onClick={() => navigator.clipboard.writeText(client.audit)}>📱 COPY WHATSAPP REPORT</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- SUPPORTING COMPONENTS ---
 function Dashboard({ clients, onOpen, onNew, onSync, onArchive, syncing }) {
   const [showArchived, setShowArchived] = useState(false);
   const filtered = clients.filter(c => !!c.archived === showArchived);
   return (
     <div style={S.container}>
       <div style={S.flexBetween}>
-        <h2 style={{color: "#00ff88"}}>{showArchived ? "ARCHIVED CASES" : "ACTIVE VAULT"}</h2>
+        <h2 style={{color: "#00ff88"}}>{showArchived ? "📁 ARCHIVE" : "🗂️ ACTIVE"}</h2>
         <div style={{display:"flex", gap:10}}>
           <button onClick={() => setShowArchived(!showArchived)} style={S.btnSmall}>{showArchived ? "ACTIVE" : "ARCHIVE"}</button>
-          <button onClick={onSync} style={S.btnSync}>{syncing ? "SYNCING..." : "🔄 DRIVE SYNC"}</button>
-          <button onClick={onNew} style={S.btnAdd}>+ NEW CASE</button>
+          <button onClick={onSync} style={S.btnSync}>{syncing ? "..." : "🔄 SYNC"}</button>
+          <button onClick={onNew} style={S.btnAdd}>+ NEW</button>
         </div>
       </div>
       <div style={S.list}>
         {filtered.map(c => (
           <div key={c.id} style={S.card}>
-            <div>{c.name.toUpperCase()} <span style={{fontSize:10, color:"#555"}}>{c.passport}</span></div>
+            <div>{c.name.toUpperCase()}</div>
             <div style={{display:"flex", gap:5}}>
               <button onClick={() => onOpen(c)} style={S.btnSmall}>OPEN</button>
-              <button onClick={() => onArchive(c.id)} style={S.btnSmall}>{showArchived ? "RECOVER" : "ARCHIVE"}</button>
+              <button onClick={() => onArchive(c.id)} style={S.btnSmall}>X</button>
             </div>
           </div>
         ))}
@@ -192,10 +122,101 @@ function Dashboard({ clients, onOpen, onNew, onSync, onArchive, syncing }) {
   );
 }
 
-function NewCase({ onSave, onBack }) {
-  const [name, setName] = useState("");
-  const [pass, setPass] = useState("");
+function CaseMaster({ client, clients, setClients, config, onBack }) {
+  const [loading, setLoading] = useState(false);
+  const runLegalAudit = async (fileBase64) => {
+    if(!config.key) return alert("API Key missing.");
+    setLoading(true);
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${config.key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-flash-1.5-exp",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: `Lawyer: Farrukh Nadeem. Firm: Farrukh Consultant. Apply LA-1 to LA-12. If refusal, check Path 1/2/3 and Article 7 ICA.` },
+              { type: "image_url", image_url: { url: fileBase64 } }
+            ]
+          }]
+        })
+      });
+      const data = await res.json();
+      const report = data.choices[0].message.content;
+      setClients(clients.map(c => c.id === client.id ? {...c, audit: report} : c));
+    } catch (e) { alert("Fail."); }
+    setLoading(false);
+  };
+
   return (
     <div style={S.container}>
-      <h2>OPEN NEW KOREA FILE</h2>
-      <input style={S.input} placeholder="Client Full Name" onChange={e=>
+      <button onClick={onBack} style={S.btnSmall}>← EXIT</button>
+      <div style={S.grid2}>
+        <div style={S.panel}>
+          <h3>Audit</h3>
+          <input type="file" onChange={(e) => {
+            const r = new FileReader();
+            r.onload = () => runLegalAudit(r.result);
+            r.readAsDataURL(e.target.files[0]);
+          }} />
+          <div style={S.auditDisplay}>{client.audit || "Waiting..."}</div>
+        </div>
+        <div style={S.panel}>
+          <h3>Actions</h3>
+          <button style={S.btnAction}>📝 DRAFT APPEAL</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NewCase({ onSave, onBack }) {
+  const [name, setName] = useState("");
+  return (
+    <div style={S.container}>
+      <input style={S.input} placeholder="Name" onChange={e=>setName(e.target.value)} />
+      <button style={S.btnAdd} onClick={()=>onSave({id: Date.now(), name, archived: false})}>SAVE</button>
+      <button onClick={onBack} style={S.btnSmall}>BACK</button>
+    </div>
+  );
+}
+
+function Config({ config, setConfig, onBack }) {
+  const [t, setT] = useState(config);
+  return (
+    <div style={S.container}>
+      <input style={S.input} value={t.key} placeholder="API KEY" onChange={e=>setT({...t, key:e.target.value})} />
+      <input style={S.input} value={t.gas} placeholder="GAS URL" onChange={e=>setT({...t, gas:e.target.value})} />
+      <button style={S.btnAdd} onClick={()=>{setConfig(t); onBack();}}>LOCK</button>
+    </div>
+  );
+}
+
+function SecureGate({ setAuth }) {
+  const [p, setP] = useState("");
+  return (
+    <div style={{padding: 50, textAlign: "center"}}>
+      <input style={S.input} type="password" placeholder="PIN" onChange={e=>setP(e.target.value)} />
+      <button style={S.btnAdd} onClick={()=>{if(p==="2026") setAuth(true)}}>ENTER</button>
+    </div>
+  );
+}
+
+const S = {
+  screen: { backgroundColor: "#0a0a0a", minHeight: "100vh", color: "#eee", fontFamily: "monospace" },
+  header: { padding: "20px", borderBottom: "1px solid #1a3a2a", display: "flex", justifyContent: "space-between" },
+  brand: { color: "#00ff88", margin: 0 },
+  firmName: { margin: 0, fontSize: 10, color: "#888" },
+  container: { padding: "20px" },
+  grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" },
+  panel: { backgroundColor: "#111", padding: "20px", border: "1px solid #1a3a2a" },
+  input: { width: "100%", padding: "12px", backgroundColor: "#000", border: "1px solid #1a3a2a", color: "#00ff88", marginBottom: "15px" },
+  btnAction: { width: "100%", padding: "12px", backgroundColor: "#00ff88", color: "#000", border: "none", fontWeight: "bold" },
+  btnAdd: { padding: "10px 20px", backgroundColor: "#00ff88", color: "#000", border: "none" },
+  btnSync: { padding: "10px 20px", backgroundColor: "#000", color: "#00ff88", border: "1px solid #00ff88" },
+  btnSmall: { padding: "5px 10px", fontSize: "11px", backgroundColor: "#222", color: "#00ff88", border: "1px solid #00ff88" },
+  card: { backgroundColor: "#111", padding: "15px", border: "1px solid #1a3a2a", marginBottom: "10px", display: "flex", justifyContent: "space-between" },
+  flexBetween: { display: "flex", justifyContent: "space-between", marginBottom: "20px" },
+  auditDisplay: { marginTop: "20px", fontSize: "12px", color: "#bbb", whiteSpace: "pre-wrap" }
+};
